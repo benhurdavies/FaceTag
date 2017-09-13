@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M"
+        crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/open-iconic/1.1.1/font/css/open-iconic-bootstrap.css"
+    />
+
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4"
+        crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1"
+        crossorigin="anonymous"></script>
+
+</head>
+
+<body>
+    <div class="card">
+        <div class="card-header">
+            <span>Face Tagger</span>
+            <span class="oi oi-plus float-right pointer" onclick="newFile()"></span>
+        </div>
+        <div class="card-body">
+            <label class="custom-file" id="face__filePic">
+                <input type="file" id="filePic" class="custom-file-input">
+                <span class="custom-file-control"></span>
+            </label>
+            <figure class="figure" id="figure__showPic">
+                <img src="" id="showPic" class="figure-img img-fluid rounded" alt="A generic square placeholder image with rounded corners in a figure.">
+                <figcaption class="figure-caption">A caption for the above image.</figcaption>
+            </figure>
+        </div>
+    </div>
+
+</body>
+
+<script>
+    var curImg = null;
+    function handleFileSelect(evt) {
+        debugger;
+        var selectFile = evt.target.files[0];
+        if (selectFile) {
+            saveToBase64(selectFile);
+        }
+    }
+
+    // function getBase64(file) {
+    //     var reader = new FileReader();
+    //     reader.readAsDataURL(file);
+    //     reader.onload = function () {
+    //         return reader.result;
+    //     };
+    //     reader.onerror = function (error) {
+    //         throw error;
+    //     };
+    // }
+
+    function saveToBase64(file) {
+        var reader = new FileReader();
+
+        reader.onload = function (readerEvt) {
+            var binaryString = readerEvt.target.result;
+            curImg = btoa(binaryString);
+            showPicture();
+        };
+
+        reader.readAsBinaryString(file);
+    }
+
+    function showPicture() {
+        var encodedImgString = 'data:image/png;base64,' + curImg;
+        $('#showPic').attr('src', encodedImgString);
+        doToggleItem();
+    }
+
+    function doToggleItem() {
+        var showImgContainer = $('#figure__showPic');
+        var filePicContainer = $('#face__filePic');
+        if (curImg) {
+            showImgContainer.show();
+            filePicContainer.hide();
+        } else {
+            showImgContainer.hide();
+            filePicContainer.show();
+        }
+    }
+
+    function initialExecute() {
+        doToggleItem();
+    }
+
+    function newFile() {
+        curImg = null;
+        initialExecute();
+    }
+
+
+    if (window.File && window.FileReader && window.FileList && window.Blob) {
+        document.getElementById('filePic').addEventListener('change', handleFileSelect, false);
+    } else {
+        alert('The File APIs are not fully supported in this browser.');
+    }
+
+    initialExecute();
+
+</script>
+
+<style>
+    .pointer{
+        cursor: pointer;
+    }
+
+</style>
+
+</html>
