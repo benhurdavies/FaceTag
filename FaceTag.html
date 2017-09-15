@@ -16,6 +16,9 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1"
         crossorigin="anonymous"></script>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tracking.js/1.1.3/tracking-min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tracking.js/1.1.3/data/face-min.js"></script>
+
 </head>
 
 <body>
@@ -34,12 +37,14 @@
                 <figcaption class="figure-caption">A caption for the above image.</figcaption>
             </figure>
         </div>
+        <div id="tags"></div>
+        <div id="showTags"></div>
     </div>
 
 </body>
 
 <script>
-    var curImg = null;
+    var dymanicObj = { curImg: null, tags: [], isFaceTracked: false };
     function handleFileSelect(evt) {
         debugger;
         var selectFile = evt.target.files[0];
@@ -64,7 +69,7 @@
 
         reader.onload = function (readerEvt) {
             var binaryString = readerEvt.target.result;
-            curImg = btoa(binaryString);
+            dymanicObj.curImg = btoa(binaryString);
             showPicture();
         };
 
@@ -72,15 +77,16 @@
     }
 
     function showPicture() {
-        var encodedImgString = 'data:image/png;base64,' + curImg;
+        var encodedImgString = 'data:image/png;base64,' + dymanicObj.curImg;
         $('#showPic').attr('src', encodedImgString);
         doToggleItem();
+
     }
 
     function doToggleItem() {
         var showImgContainer = $('#figure__showPic');
         var filePicContainer = $('#face__filePic');
-        if (curImg) {
+        if (dymanicObj.curImg) {
             showImgContainer.show();
             filePicContainer.hide();
         } else {
@@ -93,9 +99,80 @@
         doToggleItem();
     }
 
+    function clearTags() {
+        $('#tags').html('');
+    }
+
     function newFile() {
-        curImg = null;
+        dymanicObj.curImg = null;
+        dymanicObj.isFaceTracked = false;
+        dymanicObj.tags = [];
+        $('#showPic').attr('src', '');
+        clearTags();
         initialExecute();
+    }
+
+    function trackingFace() {
+        var faceTracker = new tracking.ObjectTracker(['face']);
+        var img = document.getElementById('showPic');
+        faceTracker.on('track', function (event) {
+            event.data.forEach(function (rect) {
+                var rectGeo = {
+                    x: rect.x,
+                    y: rect.y,
+                    width: rect.width,
+                    height: rect.height
+                };
+                dymanicObj.tags.push({ id: generateTagId(), geometry: rectGeo });
+                plotTags();
+            });
+        });
+
+        tracking.track(img, faceTracker);
+    }
+
+    function generateTagId() {
+        var max = 0;
+        dymanicObj.tags.forEach(function (tag) {
+            if (max < tag.id)
+                max = tag.id
+        });
+        return ++max;
+    }
+
+    function plotTags() {
+        var img = document.getElementById('showPic');
+        clearTags();
+        dymanicObj.tags.forEach(function (tag) {
+            plotTag(tag.geometry.x,
+                tag.geometry.y,
+                tag.geometry.width,
+                tag.geometry.height,
+                tag.id,
+                img);
+        });
+    }
+
+    function tagIdForDom(id) {
+        return "tag_" + id;
+    }
+
+    function plotTag(x, y, w, h, id, img) {
+        var rect = document.createElement('div');
+        document.querySelector('#tags').appendChild(rect);
+        rect.classList.add('rect');
+        rect.style.width = w + 'px';
+        rect.style.height = h + 'px';
+        rect.id = tagIdForDom();
+        rect.style.left = (img.offsetLeft + x) + 'px';
+        rect.style.top = (img.offsetTop + y) + 'px';
+        // textbox for enter tag name.
+        var tagNameBox = document.createElement('input');
+        tagNameBox.style.marginTop = w + 'px';
+        tagNameBox.style.marginLeft = '-' + (w / 2) + 'px';
+        tagNameBox.style.width = (w * 2) + 'px';
+
+        rect.appendChild(tagNameBox);
     }
 
 
@@ -105,15 +182,31 @@
         alert('The File APIs are not fully supported in this browser.');
     }
 
+    window.addEventListener("resize", function () {
+    });
+
+    $('#showPic').on('load', function () {
+        if (!dymanicObj.isFaceTracked) {
+            trackingFace();
+            dymanicObj.isFaceTracked = true;
+        }
+    })
+
     initialExecute();
 
 </script>
 
 <style>
-    .pointer{
+    .pointer {
         cursor: pointer;
     }
 
+    .rect {
+        border: 2px solid #a64ceb;
+        left: -1000px;
+        position: absolute;
+        top: -1000px;
+    }
 </style>
 
 </html>
