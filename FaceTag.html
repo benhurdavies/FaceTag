@@ -6,8 +6,7 @@
 
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M"
         crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/open-iconic/1.1.1/font/css/open-iconic-bootstrap.css"
-    />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ionicons/2.0.1/css/ionicons.min.css" />
 
     <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
         crossorigin="anonymous"></script>
@@ -25,7 +24,7 @@
     <div class="card">
         <div class="card-header">
             <span>Face Tagger</span>
-            <span class="oi oi-plus float-right pointer" onclick="newFile()"></span>
+            <span class="ion-plus float-right pointer" onclick="newFile()"></span>
         </div>
         <div class="card-body">
             <label class="custom-file" id="face__filePic">
@@ -52,17 +51,6 @@
         }
     }
 
-    // function getBase64(file) {
-    //     var reader = new FileReader();
-    //     reader.readAsDataURL(file);
-    //     reader.onload = function () {
-    //         return reader.result;
-    //     };
-    //     reader.onerror = function (error) {
-    //         throw error;
-    //     };
-    // }
-
     function saveToBase64(file) {
         var reader = new FileReader();
 
@@ -79,7 +67,6 @@
         var encodedImgString = 'data:image/png;base64,' + dymanicObj.curImg;
         $('#showPic').attr('src', encodedImgString);
         doToggleItem();
-
     }
 
     function doToggleItem() {
@@ -173,13 +160,19 @@
         var arrow = document.createElement('div');
         arrow.classList.add('arrow');
         rect.appendChild(arrow);
+        var close = document.createElement('span');
+        close.classList.add('close');
+        close.classList.add('ion-close-round');
+        rect.appendChild(close);
         rect.onclick = function () {
             tagNameBox.select();
         };
         tagNameBox.onchange = function (evt) {
             tagNameChange(id, evt.target.value);
         }
-
+        close.onclick=function(){
+            removeTag(id);
+        }
         rect.appendChild(tagNameBox);
     }
 
@@ -190,6 +183,12 @@
 
     function getTagName(id) {
         return dymanicObj.tags[id].text;
+    }
+
+    function removeTag(id){
+        delete dymanicObj.tags[id];
+        var tagId=tagIdForDom(id);
+        $(`#${tagId}`).remove();
     }
 
 
@@ -225,6 +224,11 @@
     .rect:hover * {
         opacity: 1;
     }
+
+    .close:hover{
+        transform: scale(1.1,1.1);
+        color: red;
+    } 
 
     .rect {
         border-radius: 2px;
@@ -264,6 +268,13 @@
         text-align: center;
         width: 180px;
         transition: opacity .35s ease-out;
+    }
+
+    .close {
+        margin-top: -9px;
+        font-size: 13px;
+        margin-right: -5px;
+        color: black;
     }
 </style>
 
