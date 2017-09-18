@@ -33,7 +33,7 @@
                 <span class="custom-file-control"></span>
             </label>
             <figure class="figure" id="figure__showPic">
-                <img src="" id="showPic" class="figure-img img-fluid rounded" alt="A generic square placeholder image with rounded corners in a figure.">
+                <img src="" id="showPic" class="figure-img img-fluid rounded" alt="placeholder for image">
                 <figcaption class="figure-caption">A caption for the above image.</figcaption>
             </figure>
         </div>
@@ -44,9 +44,8 @@
 </body>
 
 <script>
-    var dymanicObj = { curImg: null, tags: [], isFaceTracked: false };
+    var dymanicObj = { curImg: null, tags: {}, isFaceTracked: false };
     function handleFileSelect(evt) {
-        debugger;
         var selectFile = evt.target.files[0];
         if (selectFile) {
             saveToBase64(selectFile);
@@ -106,7 +105,7 @@
     function newFile() {
         dymanicObj.curImg = null;
         dymanicObj.isFaceTracked = false;
-        dymanicObj.tags = [];
+        dymanicObj.tags = {};
         $('#showPic').attr('src', '');
         clearTags();
         initialExecute();
@@ -123,7 +122,8 @@
                     width: rect.width,
                     height: rect.height
                 };
-                dymanicObj.tags.push({ id: generateTagId(), geometry: rectGeo });
+                var tagId = generateTagId();
+                dymanicObj.tags[tagId] = { id: tagId, geometry: rectGeo, text: "" };
                 plotTags();
             });
         });
@@ -133,9 +133,9 @@
 
     function generateTagId() {
         var max = 0;
-        dymanicObj.tags.forEach(function (tag) {
-            if (max < tag.id)
-                max = tag.id
+        Object.keys(dymanicObj.tags).forEach(function (tagId) {
+            if (max < tagId)
+                max = tagId
         });
         return ++max;
     }
@@ -143,7 +143,8 @@
     function plotTags() {
         var img = document.getElementById('showPic');
         clearTags();
-        dymanicObj.tags.forEach(function (tag) {
+        Object.keys(dymanicObj.tags).forEach(function (tagId) {
+            var tag = dymanicObj.tags[tagId];
             plotTag(tag.geometry.x,
                 tag.geometry.y,
                 tag.geometry.width,
@@ -163,16 +164,32 @@
         rect.classList.add('rect');
         rect.style.width = w + 'px';
         rect.style.height = h + 'px';
-        rect.id = tagIdForDom();
+        rect.id = tagIdForDom(id);
         rect.style.left = (img.offsetLeft + x) + 'px';
         rect.style.top = (img.offsetTop + y) + 'px';
         // textbox for enter tag name.
         var tagNameBox = document.createElement('input');
-        tagNameBox.style.marginTop = w + 'px';
-        tagNameBox.style.marginLeft = '-' + (w / 2) + 'px';
-        tagNameBox.style.width = (w * 2) + 'px';
+        tagNameBox.value = getTagName(id);
+        var arrow = document.createElement('div');
+        arrow.classList.add('arrow');
+        rect.appendChild(arrow);
+        rect.onclick = function () {
+            tagNameBox.select();
+        };
+        tagNameBox.onchange = function (evt) {
+            tagNameChange(id, evt.target.value);
+        }
 
         rect.appendChild(tagNameBox);
+    }
+
+    function tagNameChange(id, val) {
+        dymanicObj.tags[id].text = val;
+        return true;
+    }
+
+    function getTagName(id) {
+        return dymanicObj.tags[id].text;
     }
 
 
@@ -201,11 +218,52 @@
         cursor: pointer;
     }
 
+    .rect:hover {
+        opacity: 1;
+    }
+
+    .rect:hover * {
+        opacity: 1;
+    }
+
     .rect {
-        border: 2px solid #a64ceb;
+        border-radius: 2px;
+        border: 3px solid white;
+        box-shadow: 0 16px 28px 0 rgba(0, 0, 0, 0.3);
+        cursor: pointer;
         left: -1000px;
         position: absolute;
         top: -1000px;
+        opacity: 0;
+    }
+
+    .arrow {
+        border-bottom: 10px solid white;
+        border-left: 10px solid transparent;
+        border-right: 10px solid transparent;
+        height: 0;
+        width: 0;
+        position: absolute;
+        left: 50%;
+        margin-left: -5px;
+        bottom: -12px;
+        opacity: 0;
+    }
+
+    .rect input {
+        border: 0px;
+        bottom: -42px;
+        color: #a64ceb;
+        font-size: 15px;
+        height: 30px;
+        left: 50%;
+        margin-left: -90px;
+        opacity: 0;
+        outline: none;
+        position: absolute;
+        text-align: center;
+        width: 180px;
+        transition: opacity .35s ease-out;
     }
 </style>
 
