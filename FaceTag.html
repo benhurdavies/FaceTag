@@ -18,18 +18,22 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tracking.js/1.1.3/tracking-min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tracking.js/1.1.3/data/face-min.js"></script>
 
+    <script src="https://fastcdn.org/FileSaver.js/1.1.20151003/FileSaver.min.js"></script>
+
 </head>
 
 <body>
     <div class="card">
         <div class="card-header">
             <span>Face Tagger</span>
-            <span class="ion-plus float-right pointer" onclick="newFile()"></span>
+            <span class="float-right menus">
+            <span class="ion-archive pointer" onclick="saveFile()"/>
+            <span class="ion-plus pointer" onclick="newFile()"></span>
+            </span>
         </div>
         <div class="card-body">
             <label class="custom-file" id="face__filePic">
-                <input type="file" id="filePic" class="custom-file-input">
-                <span class="custom-file-control"></span>
+                <input type="file" id="filePic" class="">
             </label>
             <figure class="figure" id="figure__showPic">
                 <img src="" id="showPic" class="figure-img img-fluid rounded" alt="placeholder for image">
@@ -38,12 +42,31 @@
         </div>
         <div id="tags"></div>
         <div id="showTags"></div>
+        <div id="test"></div>
     </div>
 
 </body>
 
 <script>
-    var dymanicObj = { curImg: null, tags: {}, isFaceTracked: false };
+    var dymanicObj =
+        //#@__@#START replace initail data with current data in dymanicObj when save
+        { curImg: null, tags: {}, isFaceTracked: false };
+    //#@__@#END
+
+    function getHtmlForSave() {
+        var baseHtml = $('html').html();
+        var regex = new RegExp("//#@__@#START" + "(.|\n)+?" + "//#@__@#END");
+        var test = baseHtml.match(regex);
+        var htmlWithData = baseHtml.replace(regex, JSON.stringify(dymanicObj) + ';');
+        return htmlWithData;
+    }
+
+    function saveFile() {
+        var htmlContent = getHtmlForSave();
+        var blob = new Blob([htmlContent], { type: "text/plain;charset=utf-8" });
+        saveAs(blob, "FaceTag.html");
+    }
+
     function handleFileSelect(evt) {
         var selectFile = evt.target.files[0];
         if (selectFile) {
@@ -170,7 +193,7 @@
         tagNameBox.onchange = function (evt) {
             tagNameChange(id, evt.target.value);
         }
-        close.onclick=function(){
+        close.onclick = function () {
             removeTag(id);
         }
         rect.appendChild(tagNameBox);
@@ -185,9 +208,9 @@
         return dymanicObj.tags[id].text;
     }
 
-    function removeTag(id){
+    function removeTag(id) {
         delete dymanicObj.tags[id];
-        var tagId=tagIdForDom(id);
+        var tagId = tagIdForDom(id);
         $(`#${tagId}`).remove();
     }
 
@@ -206,6 +229,9 @@
             trackingFace();
             dymanicObj.isFaceTracked = true;
         }
+        else {
+            plotTags();
+        }
     })
 
     initialExecute();
@@ -213,6 +239,11 @@
 </script>
 
 <style>
+    .menus span {
+        margin: 5px;
+        font-size: 16px;
+    }
+
     .pointer {
         cursor: pointer;
     }
@@ -225,10 +256,10 @@
         opacity: 1;
     }
 
-    .close:hover{
-        transform: scale(1.1,1.1);
+    .close:hover {
+        transform: scale(1.1, 1.1);
         color: red;
-    } 
+    }
 
     .rect {
         border-radius: 2px;
