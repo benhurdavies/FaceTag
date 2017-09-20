@@ -49,7 +49,7 @@
 <script>
     var dymanicObj =
         //#@__@#START replace initail data with current data in dymanicObj when save
-        { curImg: null, tags: {}, isFaceTracked: false };
+        { curImg: null, tags: {}, isFaceTracked: false, baseImgGeo: null };
     //#@__@#END
 
     function getHtmlForSave() {
@@ -225,6 +225,11 @@
     });
 
     $('#showPic').on('load', function () {
+        var img = document.getElementById('showPic');
+        dymanicObj.baseImgGeo = {
+            width: img.clientWidth,
+            height: img.clientHeight,
+        };
         if (!dymanicObj.isFaceTracked) {
             trackingFace();
             dymanicObj.isFaceTracked = true;
@@ -235,6 +240,13 @@
         if (dymanicObj.isFaceTracked) {
             plotTags();
         }
+    }
+
+    function resizeRendering(){
+        var img = document.getElementById('showPic');
+        var newWidth = img.clientWidth;
+        var newHeight = img.clientHeight;
+        
     }
 
     initialExecute();
