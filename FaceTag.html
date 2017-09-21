@@ -129,6 +129,8 @@
                 var rectGeo = {
                     x: rect.x,
                     y: rect.y,
+                    totalX: rect.x + img.offsetLeft,
+                    totalY: rect.y + img.offsetTop,
                     width: rect.width,
                     height: rect.height
                 };
@@ -155,8 +157,8 @@
         clearTags();
         Object.keys(dymanicObj.tags).forEach(function (tagId) {
             var tag = dymanicObj.tags[tagId];
-            plotTag(tag.geometry.x,
-                tag.geometry.y,
+            plotTag(tag.geometry.totalX,
+                tag.geometry.totalY,
                 tag.geometry.width,
                 tag.geometry.height,
                 tag.id,
@@ -175,8 +177,8 @@
         rect.style.width = w + 'px';
         rect.style.height = h + 'px';
         rect.id = tagIdForDom(id);
-        rect.style.left = (img.offsetLeft + x) + 'px';
-        rect.style.top = (img.offsetTop + y) + 'px';
+        rect.style.left = x + 'px';
+        rect.style.top = y + 'px';
         // textbox for enter tag name.
         var tagNameBox = document.createElement('input');
         tagNameBox.value = getTagName(id);
@@ -222,6 +224,7 @@
     }
 
     window.addEventListener("resize", function () {
+        resizeRenderingInfo();
     });
 
     $('#showPic').on('load', function () {
@@ -242,11 +245,73 @@
         }
     }
 
-    function resizeRendering(){
+    function resizeCalc() {
         var img = document.getElementById('showPic');
-        var newWidth = img.clientWidth;
-        var newHeight = img.clientHeight;
-        
+        var nW = img.clientWidth;
+        var nH = img.clientHeight;
+        var oW = dymanicObj.baseImgGeo.width;
+        var oH = dymanicObj.baseImgGeo.height;
+        var delta_W = nW - oW;
+        var delta_H = nH - oH;
+        var mod_delta_W = Math.sqrt(delta_W * delta_W);
+        var mod_delta_H = Math.sqrt(delta_H * delta_H);
+
+        var signW = delta_W / mod_delta_W;
+        var signH = delta_H / mod_delta_H;
+        var sign = signW > 0 && signH > 0 ? 1 : -1;
+
+        var diffWidthPerc = mod_delta_W / oW;
+        var diffHeightPerc = mod_delta_H / oH;
+
+        var relativeDimension = {
+            relativeWidth: function (relativeObjectDim) {
+                return relativeObjectDim + (diffWidthPerc * relativeObjectDim * sign);
+            },
+            relativeHeight: function (relativeObjectDim) {
+                return relativeObjectDim + (diffHeightPerc * relativeObjectDim * sign);
+            },
+            newImgWidth: nW,
+            newImgHeight: nH,
+        }
+        return relativeDimension;
+    }
+
+    function needResize() {
+        var img = document.getElementById('showPic');
+        if (img.clientWidth === dymanicObj.baseImgGeo.width
+            && img.clientHeight === dymanicObj.baseImgGeo.height) {
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+
+    function resizeRenderingInfo() {
+         var img = document.getElementById('showPic');
+        if (!needResize()) {
+            return;
+        }
+        var relativeDimension = resizeCalc();
+
+        Object.keys(dymanicObj.tags).forEach(function (tagId) {
+            var tag = dymanicObj.tags[tagId];
+            var width = relativeDimension.relativeWidth(tag.geometry.width);
+            var x = relativeDimension.relativeWidth(tag.geometry.x);
+            var height = relativeDimension.relativeHeight(tag.geometry.height);
+            var y = relativeDimension.relativeHeight(tag.geometry.y);
+            tag.geometry.width = width;
+            tag.geometry.height = height;
+            tag.geometry.totalX = x+img.offsetLeft;
+            tag.geometry.totalY = y+img.offsetTop;
+            tag.geometry.x=x;
+            tag.geometry.y=y;
+        });
+
+        dymanicObj.baseImgGeo.width = relativeDimension.newImgWidth;
+        dymanicObj.baseImgGeo.height = relativeDimension.newImgHeight;
+
+        plotTags();
     }
 
     initialExecute();
