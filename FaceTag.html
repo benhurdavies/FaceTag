@@ -49,14 +49,17 @@
 <script>
     var dymanicObj =
         //#@__@#START replace initail data with current data in dymanicObj when save
-        { curImg: null, tags: {}, isFaceTracked: false, baseImgGeo: null };
+        { curImg: null, isImgLoaded: false, tags: {}, isFaceTracked: false, baseImgGeo: null };
     //#@__@#END
 
     function getHtmlForSave() {
         var baseHtml = $('html').html();
         var regex = new RegExp("//#@__@#START" + "(.|\n)+?" + "//#@__@#END");
         var test = baseHtml.match(regex);
-        var htmlWithData = baseHtml.replace(regex, JSON.stringify(dymanicObj) + ';');
+        var dataReplace = "//#@__@#START replace initail data with current data in dymanicObj when save \n"
+            + JSON.stringify(dymanicObj)+ ';'
+            + "\n //#@__@#END";
+        var htmlWithData = baseHtml.replace(regex,dataReplace);
         return htmlWithData;
     }
 
@@ -64,6 +67,10 @@
         var htmlContent = getHtmlForSave();
         var blob = new Blob([htmlContent], { type: "text/plain;charset=utf-8" });
         saveAs(blob, "FaceTag.html");
+    }
+
+    function clearImgMemory() {
+        dymanicObj.curImg = null;
     }
 
     function handleFileSelect(evt) {
@@ -75,26 +82,25 @@
 
     function saveToBase64(file) {
         var reader = new FileReader();
-
         reader.onload = function (readerEvt) {
             var binaryString = readerEvt.target.result;
             dymanicObj.curImg = btoa(binaryString);
             showPicture();
         };
-
         reader.readAsBinaryString(file);
     }
 
     function showPicture() {
         var encodedImgString = 'data:image/png;base64,' + dymanicObj.curImg;
         $('#showPic').attr('src', encodedImgString);
+        dymanicObj.isImgLoaded = true;
         doToggleItem();
     }
 
     function doToggleItem() {
         var showImgContainer = $('#figure__showPic');
         var filePicContainer = $('#face__filePic');
-        if (dymanicObj.curImg) {
+        if (dymanicObj.isImgLoaded) {
             showImgContainer.show();
             filePicContainer.hide();
         } else {
@@ -116,6 +122,7 @@
         dymanicObj.curImg = null;
         dymanicObj.isFaceTracked = false;
         dymanicObj.tags = {};
+        dymanicObj.isImgLoaded = false;
         $('#showPic').attr('src', '');
         clearTags();
         initialExecute();
@@ -124,6 +131,7 @@
     function trackingFace() {
         var faceTracker = new tracking.ObjectTracker(['face']);
         var img = document.getElementById('showPic');
+        var tagSize = getTagTextWidth(img.clientWidth);
         faceTracker.on('track', function (event) {
             event.data.forEach(function (rect) {
                 var rectGeo = {
@@ -132,7 +140,8 @@
                     totalX: rect.x + img.offsetLeft,
                     totalY: rect.y + img.offsetTop,
                     width: rect.width,
-                    height: rect.height
+                    height: rect.height,
+                    textWidth: tagSize.width,
                 };
                 var tagId = generateTagId();
                 dymanicObj.tags[tagId] = { id: tagId, geometry: rectGeo, text: "" };
@@ -157,31 +166,39 @@
         clearTags();
         Object.keys(dymanicObj.tags).forEach(function (tagId) {
             var tag = dymanicObj.tags[tagId];
-            plotTag(tag.geometry.totalX,
-                tag.geometry.totalY,
-                tag.geometry.width,
-                tag.geometry.height,
-                tag.id,
-                img);
+            plotTag(tag, img);
         });
+    }
+
+    function getTagTextWidth(imgWidth) {
+        var widthPerc = 150 / 1300;
+        var tagWidth = imgWidth * widthPerc;
+        tagWidth = tagWidth < 80 ? 80 : tagWidth;
+        return {
+            left: tagWidth / 2,
+            width: tagWidth,
+        }
     }
 
     function tagIdForDom(id) {
         return "tag_" + id;
     }
 
-    function plotTag(x, y, w, h, id, img) {
+    function plotTag(tag, img) {
         var rect = document.createElement('div');
         document.querySelector('#tags').appendChild(rect);
         rect.classList.add('rect');
-        rect.style.width = w + 'px';
-        rect.style.height = h + 'px';
-        rect.id = tagIdForDom(id);
-        rect.style.left = x + 'px';
-        rect.style.top = y + 'px';
+        rect.style.width = tag.geometry.width + 'px';
+        rect.style.height = tag.geometry.height + 'px';
+        rect.id = tagIdForDom(tag.id);
+        rect.style.left = tag.geometry.totalX + 'px';
+        rect.style.top = tag.geometry.totalY + 'px';
         // textbox for enter tag name.
         var tagNameBox = document.createElement('input');
-        tagNameBox.value = getTagName(id);
+        tagNameBox.value = getTagName(tag.id);
+        tagNameBox.style.width = tag.geometry.textWidth + 'px';
+        tagNameBox.style.marginLeft = (-tag.geometry.textWidth / 2) + 'px';
+
         var arrow = document.createElement('div');
         arrow.classList.add('arrow');
         rect.appendChild(arrow);
@@ -193,10 +210,10 @@
             tagNameBox.select();
         };
         tagNameBox.onchange = function (evt) {
-            tagNameChange(id, evt.target.value);
+            tagNameChange(tag.id, evt.target.value);
         }
         close.onclick = function () {
-            removeTag(id);
+            removeTag(tag.id);
         }
         rect.appendChild(tagNameBox);
     }
@@ -237,7 +254,8 @@
             trackingFace();
             dymanicObj.isFaceTracked = true;
         }
-    })
+        clearImgMemory();
+    });
 
     function loadPloting() {
         if (dymanicObj.isFaceTracked) {
@@ -288,11 +306,12 @@
     }
 
     function resizeRenderingInfo() {
-         var img = document.getElementById('showPic');
+        var img = document.getElementById('showPic');
         if (!needResize()) {
             return;
         }
         var relativeDimension = resizeCalc();
+        var tagSize = getTagTextWidth(img.clientWidth);
 
         Object.keys(dymanicObj.tags).forEach(function (tagId) {
             var tag = dymanicObj.tags[tagId];
@@ -302,10 +321,11 @@
             var y = relativeDimension.relativeHeight(tag.geometry.y);
             tag.geometry.width = width;
             tag.geometry.height = height;
-            tag.geometry.totalX = x+img.offsetLeft;
-            tag.geometry.totalY = y+img.offsetTop;
-            tag.geometry.x=x;
-            tag.geometry.y=y;
+            tag.geometry.totalX = x + img.offsetLeft;
+            tag.geometry.totalY = y + img.offsetTop;
+            tag.geometry.x = x;
+            tag.geometry.y = y;
+            tag.geometry.textWidth = tagSize.width;
         });
 
         dymanicObj.baseImgGeo.width = relativeDimension.newImgWidth;
@@ -368,17 +388,15 @@
 
     .rect input {
         border: 0px;
-        bottom: -42px;
+        bottom: -32px;
         color: #a64ceb;
-        font-size: 15px;
-        height: 30px;
+        font-size: 12px;
+        height: 20px;
         left: 50%;
-        margin-left: -90px;
         opacity: 0;
         outline: none;
         position: absolute;
         text-align: center;
-        width: 180px;
         transition: opacity .35s ease-out;
     }
 
