@@ -389,8 +389,8 @@
 
     function needResize() {
         var img = document.getElementById('showPic');
-        if (
-            img.clientWidth === dymanicObj.baseImgGeo.width
+        if(!dymanicObj.isImgLoaded) return false;
+        if (img.clientWidth === dymanicObj.baseImgGeo.width
             && img.clientHeight === dymanicObj.baseImgGeo.height) {
             return false;
         }
