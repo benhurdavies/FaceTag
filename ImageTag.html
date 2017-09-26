@@ -199,8 +199,9 @@
     function generateTagId() {
         var max = 0;
         Object.keys(dymanicObj.tags).forEach(function (tagId) {
-            if (max < tagId)
-                max = tagId
+            var _tagInt=parseInt(tagId,10);
+            if (max < _tagInt)
+                max = _tagInt
         });
         return ++max;
     }
@@ -284,8 +285,8 @@
         if (!menuContext.isManualTag) {
             return;
         }
-        var defaultWidth = 50;
-        var defaultheight = 50;
+        var defaultWidth = 25;
+        var defaultheight = 25;
         var img = document.getElementById('showPic');
         var tagSize = getTagTextWidth(img.clientWidth);
         var clientX = event.pageX - (defaultWidth / 2);
