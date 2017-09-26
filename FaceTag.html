@@ -19,17 +19,21 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tracking.js/1.1.3/data/face-min.js"></script>
 
     <script src="https://fastcdn.org/FileSaver.js/1.1.20151003/FileSaver.min.js"></script>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
 </head>
 
 <body>
     <div class="card">
         <div class="card-header">
-            <span>Face Tagger</span>
+            <span>Image Tagger</span>
             <span class="float-right menus">
-                <!-- <span class="ion-ios-personadd pointer" onclick="addTag"></span> -->
-                <span class="ion-archive pointer" onclick="saveFile()"></span>
-                <span class="ion-plus pointer" onclick="newFile()"></span>
+            <span class="ion-eye-disabled pointer" id="showTag" onclick="toggleTags('showTag')"
+            data-toggle="tooltip" data-placement="bottom" title="Show/Hide tags"
+            ></span>
+            <span class="ion-ios-personadd pointer" id="manualTag" onclick="toggleManualTag('manualTag')" data-toggle="tooltip" data-placement="bottom"
+                title="Do manual tags"></span>
+            <span class="ion-archive pointer" onclick="showSaveFileModel()" data-toggle="tooltip" data-placement="bottom" title="Export"></span>
+            <span class="ion-plus pointer" onclick="newFile()" data-toggle="tooltip" data-placement="bottom" title="New"></span>
             </span>
         </div>
         <div class="card-body">
@@ -37,12 +41,36 @@
                 <input type="file" id="filePic" class="">
             </label>
             <figure class="figure" id="figure__showPic">
-                <img src="" id="showPic" class="figure-img img-fluid rounded" alt="placeholder for image">
+                <img src="" id="showPic" class="figure-img img-fluid rounded" onclick="addTag(event)" alt="placeholder for image">
                 <figcaption class="figure-caption">Tag -> Save -> Send</figcaption>
             </figure>
         </div>
         <div id="tags"></div>
         <div id="showTags"></div>
+    </div>
+
+    <div class="modal fade" tabindex="-1" role="dialog" aria-labelledby="saveModel" id="saveModel" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">File Name To Export</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                              <span aria-hidden="true" class="ion-close pointer"></span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group mx-sm-3">
+                        <label for="fileNameDownload" class="sr-only">Filename</label>
+                        <input type="text" class="form-control" id="fileNameDownload" placeholder="Filename without extension">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" onclick="saveFile()" class="btn btn-primary">Export changes</button>
+                </div>
+            </div>
+        </div>
     </div>
 
 </body>
@@ -53,21 +81,36 @@
         { curImg: null, isImgLoaded: false, tags: {}, isFaceTracked: false, baseImgGeo: null };
     //#@__@#END
 
+    var menuContext = {
+        isManualTag: false,
+        showTag: true,
+    };
+
     function getHtmlForSave() {
         var baseHtml = $('html').html();
         var regex = new RegExp("//#@__@#START" + "(.|\n)+?" + "//#@__@#END");
         var test = baseHtml.match(regex);
         var dataReplace = "//#@__@#START replace initail data with current data in dymanicObj when save \n"
-            + JSON.stringify(dymanicObj)+ ';'
+            + JSON.stringify(dymanicObj) + ';'
             + "\n //#@__@#END";
-        var htmlWithData = baseHtml.replace(regex,dataReplace);
+        var htmlWithData = baseHtml.replace(regex, dataReplace);
         return htmlWithData;
     }
 
+    function showSaveFileModel() {
+        $('#saveModel').modal('show');
+    }
+
     function saveFile() {
-        var htmlContent = getHtmlForSave();
-        var blob = new Blob([htmlContent], { type: "text/plain;charset=utf-8" });
-        saveAs(blob, "FaceTag.html");
+        $('#saveModel').modal('hide');
+
+        setTimeout(function () {
+            var htmlContent = getHtmlForSave();
+            var file__Name = $('#fileNameDownload').val();
+            file__Name = file__Name === "" ? "default_ImageTagger.html" : file__Name + ".html";
+            var blob = new Blob([htmlContent], { type: "text/plain;charset=utf-8" });
+            saveAs(blob, file__Name);
+        }, 3000);
     }
 
     function clearImgMemory() {
@@ -189,6 +232,9 @@
         var rect = document.createElement('div');
         document.querySelector('#tags').appendChild(rect);
         rect.classList.add('rect');
+        if (menuContext.showTag) {
+            rect.classList.add('rect__active');
+        }
         rect.style.width = tag.geometry.width + 'px';
         rect.style.height = tag.geometry.height + 'px';
         rect.id = tagIdForDom(tag.id);
@@ -234,6 +280,52 @@
         $(`#${tagId}`).remove();
     }
 
+    function addTag(evt) {
+        if (!menuContext.isManualTag) {
+            return;
+        }
+        var defaultWidth = 50;
+        var defaultheight = 50;
+        var img = document.getElementById('showPic');
+        var tagSize = getTagTextWidth(img.clientWidth);
+        var clientX = event.pageX - (defaultWidth / 2);
+        var clientY = event.pageY - (defaultheight / 2);
+        var rectGeo = {
+            x: clientX - img.offsetLeft,
+            y: clientY - img.offsetTop,
+            totalX: clientX,
+            totalY: clientY,
+            width: defaultWidth,
+            height: defaultheight,
+            textWidth: tagSize.width,
+        };
+        var tagId = generateTagId();
+        dymanicObj.tags[tagId] = { id: tagId, geometry: rectGeo, text: "" };
+        plotTag(dymanicObj.tags[tagId], img);
+    }
+
+    function toggleManualTag(menuId) {
+        menuContext.isManualTag = !menuContext.isManualTag;
+        var menuObj = document.getElementById(menuId);
+        if (menuContext.isManualTag)
+            menuObj.classList.add('menu__active');
+        else
+            menuObj.classList.remove('menu__active');
+    }
+
+    function toggleTags(menuId) {
+        menuContext.showTag = !menuContext.showTag;
+        var menuObj = document.getElementById(menuId);
+        if (menuContext.showTag) {
+            menuObj.classList.remove('ion-eye-disabled');
+            menuObj.classList.add('ion-eye');
+            $('.rect').addClass('rect__active');
+        } else {
+            menuObj.classList.remove('ion-eye');
+            menuObj.classList.add('ion-eye-disabled');
+            $('.rect').removeClass('rect__active');
+        }
+    }
 
     if (window.File && window.FileReader && window.FileList && window.Blob) {
         document.getElementById('filePic').addEventListener('change', handleFileSelect, false);
@@ -297,7 +389,8 @@
 
     function needResize() {
         var img = document.getElementById('showPic');
-        if (img.clientWidth === dymanicObj.baseImgGeo.width
+        if (
+            img.clientWidth === dymanicObj.baseImgGeo.width
             && img.clientHeight === dymanicObj.baseImgGeo.height) {
             return false;
         }
@@ -336,13 +429,24 @@
     }
 
     initialExecute();
+    $(function () {
+        $('[data-toggle="tooltip"]').tooltip()
+    })
 
 </script>
 
 <style>
     .menus span {
-        margin: 5px;
-        font-size: 16px;
+        margin: 8px;
+        font-size: 20px;
+    }
+
+    .menus span:hover {
+        color: #28a745;
+    }
+
+    .menu__active {
+        color: #28a745;
     }
 
     .pointer {
@@ -356,6 +460,11 @@
 
     .rect:hover * {
         opacity: 1;
+        z-index: 50;
+    }
+
+    .rect__active {
+        opacity: 1 !important;
     }
 
     .close:hover {
@@ -384,17 +493,18 @@
         left: 50%;
         margin-left: -5px;
         bottom: -12px;
-        opacity: 0;
+        opacity: inherit;
     }
 
     .rect input {
         border: 0px;
         bottom: -32px;
-        color: #a64ceb;
+        color: #000;
         font-size: 12px;
+        font-weight: bold;
         height: 20px;
         left: 50%;
-        opacity: 0;
+        opacity: inherit;
         outline: none;
         position: absolute;
         text-align: center;
