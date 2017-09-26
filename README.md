@@ -1,6 +1,6 @@
 # Portable ImageTag
 
-###Features
+######Features
 * Automatic Face detection.
 * Manual Tagging.
 * Export to Html (picture embedded in it) and ship to any where.
