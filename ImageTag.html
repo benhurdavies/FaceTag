@@ -156,6 +156,7 @@
     function initialExecute() {
         doToggleItem();
         loadPloting();
+        menuReset();
     }
 
     function clearTags() {
@@ -199,7 +200,7 @@
     function generateTagId() {
         var max = 0;
         Object.keys(dymanicObj.tags).forEach(function (tagId) {
-            var _tagInt=parseInt(tagId,10);
+            var _tagInt = parseInt(tagId, 10);
             if (max < _tagInt)
                 max = _tagInt
         });
@@ -390,7 +391,7 @@
 
     function needResize() {
         var img = document.getElementById('showPic');
-        if(!dymanicObj.isImgLoaded) return false;
+        if (!dymanicObj.isImgLoaded) return false;
         if (img.clientWidth === dymanicObj.baseImgGeo.width
             && img.clientHeight === dymanicObj.baseImgGeo.height) {
             return false;
@@ -429,7 +430,25 @@
         plotTags();
     }
 
+    function menuReset() {
+        var manualTag = document.getElementById('manualTag');
+        var showTag = document.getElementById('showTag');
+        if (menuContext.isManualTag)
+            manualTag.classList.add('menu__active');
+        else
+            manualTag.classList.remove('menu__active');
+
+        if (menuContext.showTag) {
+            showTag.classList.remove('ion-eye-disabled');
+            showTag.classList.add('ion-eye');
+        } else {
+            showTag.classList.remove('ion-eye');
+            showTag.classList.add('ion-eye-disabled');
+        }
+    }
+
     initialExecute();
+
     $(function () {
         $('[data-toggle="tooltip"]').tooltip()
     })
